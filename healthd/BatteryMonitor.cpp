@@ -337,11 +337,9 @@ static BatteryMonitor::PowerSupplyType readRawPowerSupplyType(const String8& pat
         return BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_UNKNOWN;
     }
 
+    // Unknown types are fine; this runs on every update, so warning would spam.
     auto ret = mapSysfsString(buf.c_str(), supplyTypeMap);
-    if (!ret) {
-        KLOG_WARNING(LOG_TAG, "Unknown power supply type '%s'\n", buf.c_str());
-        *ret = BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_UNKNOWN;
-    }
+    if (!ret) *ret = BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_UNKNOWN;
 
     return static_cast<BatteryMonitor::PowerSupplyType>(*ret);
 }
@@ -555,6 +553,25 @@ void BatteryMonitor::updateValues(void) {
     // Return 0 if voltage_min_design does not exist
     if (auto res = getVoltageMinDesign(); res.ok()) {
         ensureBatteryHealthData(mHealthInfo.get())->batteryVoltageMinDesignUv = *res;
+    }
+
+    // Rescan charger types: a supply's 'type' changes at runtime, and usb reads UNKNOWN when booted unplugged.
+    {
+        std::unique_ptr<DIR, decltype(&closedir)> dir(opendir(POWER_SUPPLY_SYSFS_PATH), closedir);
+        if (dir == NULL) {
+            KLOG_ERROR(LOG_TAG, "Could not open %s\n", POWER_SUPPLY_SYSFS_PATH);
+        } else {
+            String8 path;
+            struct dirent* entry;
+
+            while ((entry = readdir(dir.get()))) {
+                const char* name = entry->d_name;
+
+                if (!strcmp(name, ".") || !strcmp(name, "..")) continue;
+
+                updateChargerPresence(name, readPowerSupplyType(path, name));
+            }
+        }
     }
 
     double MaxPower = 0;
