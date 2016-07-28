@@ -327,6 +327,7 @@ static BatteryMonitor::PowerSupplyType readRawPowerSupplyType(const String8& pat
             {"USB_PD", BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_AC},
             {"USB_PD_DRP", BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_USB},
             {"Wireless", BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_WIRELESS},
+            {"DASH", BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_AC},
             {"Dock", BatteryMonitor::ANDROID_POWER_SUPPLY_TYPE_DOCK},
             {NULL, 0},
     };
